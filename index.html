@@ -306,6 +306,10 @@ p{ font-size:clamp(.95rem, 1.1vw, 1.05rem); color:var(--bone-dim); }
   width:100%; height:100%;
   object-fit:cover;
   opacity:1;
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 .hero-vignette{
@@ -1997,7 +2001,7 @@ footer{
 <section class="hero" id="hero">
   <!-- Single combined reel: 3 clips + custom mix baked in -->
   <div class="hero-video">
-    <video id="heroReel" muted loop playsinline preload="auto" autoplay poster="assets/hero-poster.jpg">
+    <video id="heroReel" muted loop playsinline webkit-playsinline preload="auto" autoplay poster="assets/hero-poster.jpg" disablepictureinpicture disableremoteplayback x-webkit-airplay="deny">
       <!-- External HQ source: used in production when assets/ is reachable -->
       <source src="assets/hero-reel.mp4" type="video/mp4">
       <!-- Inline base64 fallback: works in standalone/preview without assets folder -->
@@ -2397,9 +2401,8 @@ footer{
     <h2 class="serif">The receipts.</h2>
   </div>
   <div class="proof-elfsight-slot" id="elfsightSlot">
-    <span class="badge">Reviews · Live</span>
+    <span class="badge">Recent</span>
     <p>// Elfsight reviews widget renders here once embed code is added.</p>
-    <p style="margin-top:1rem; font-size:.75rem;">Karim — drop the Elfsight script here when you're ready.</p>
   </div>
 </section>
 
@@ -2699,9 +2702,18 @@ window.addEventListener('load', () => {
   if (!video) return;
   const audioToggle = document.getElementById('audioToggle');
   const audioLabel  = document.getElementById('audioLabel');
+  const hero = document.getElementById('hero');
 
   // Try autoplay
   video.play().catch(()=>{});
+
+  function muteAudio(){
+    if (!video.muted){
+      video.muted = true;
+      audioToggle.classList.add('muted');
+      audioLabel.textContent = 'Sound Off';
+    }
+  }
 
   // Sound toggle — unmutes the baked-in audio
   audioToggle.addEventListener('click', () => {
@@ -2712,11 +2724,23 @@ window.addEventListener('load', () => {
       audioLabel.textContent = 'Sound On';
       video.play().catch(()=>{});
     } else {
-      video.muted = true;
-      audioToggle.classList.add('muted');
-      audioLabel.textContent = 'Sound Off';
+      muteAudio();
     }
   });
+
+  // Stop the music when the user scrolls past the hero
+  if (hero && 'IntersectionObserver' in window){
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (!entry.isIntersecting) muteAudio();
+      });
+    }, { threshold: 0.35 });
+    io.observe(hero);
+  } else {
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > (window.innerHeight * 0.5)) muteAudio();
+    }, { passive: true });
+  }
 })();
 
 /* ---------- Live timestamp ---------- */
